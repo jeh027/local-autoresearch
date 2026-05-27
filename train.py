@@ -19,7 +19,7 @@ from prepare import TIME_BUDGET, load_train_val, evaluate_accuracy
 # ---------------------------------------------------------------------------
 
 C = 1.0
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0005
 INIT_SCALE = 0.01
 WARMUP_STEPS = 10  # exclude early steps from timed budget (mirrors autoresearch)
 
