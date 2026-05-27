@@ -7,7 +7,7 @@ This is an experiment to have the LLM do its own research.
 To set up a new experiment, work with the user to:
 
 1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar5`). The branch `autoresearch/<tag>` must not already exist — this is a fresh run.
-2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
+2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current main.
 3. **Read the in-scope files**: The repo is small. Read these files for full context:
    - `README.md` — repository context.
    - `prepare.py` — fixed constants, CSV download, parquet train/val split, TF-IDF + extra features, loaders, evaluation. **Do not modify.**
@@ -16,7 +16,7 @@ To set up a new experiment, work with the user to:
    - `data/train.csv`, `data/train.parquet`, `data/val.parquet`
    - `preprocessor/vectorizer.pkl`, `label_encoder.pkl`, `extra_scaler.pkl`
    - `preprocessor/train_features.npz`, `preprocessor/val_features.npz`  
-   If missing, tell the human to run `python prepare.py` (or `uv run prepare.py` if using uv).
+   If missing, tell the human to run `python prepare.py`.
 5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 6. **Confirm and go**: Confirm setup looks good.
 
@@ -49,7 +49,7 @@ Each experiment runs on CPU. The training script runs for a **fixed time budget 
 
 **What you CANNOT do:**
 - Modify `prepare.py`. It is read-only. It contains the fixed evaluation, data loading, tokenizer, and training constants (time budget, sequence length, etc).
-- Install new packages or add dependencies. You can only use what's already in `pyproject.toml`.
+- Install new packages or add dependencies.
 - Modify the evaluation harness. The `evaluate_accuracy` function in `prepare.py` is the ground truth metric.
 
 **The goal is simple: get the highest `val_accuracy`.** Since the time budget is fixed, you don't need to worry about training time — it's always 5 minutes. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
