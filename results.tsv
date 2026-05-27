@@ -1,1 +1,16 @@
 commit	val_accuracy	status	description
+4490fed	0.495833	keep	baseline
+3040cc0	0.850000	keep	optimize grad and lower lr 0.001
+6db663b	0.716667	discard	mini-batch SGD with batch_size 64
+81bd411	0.783333	discard	increase C to 10.0
+fe9a209	0.854167	keep	lower learning rate to 0.0005
+71b36dd	0.841667	discard	set C to 0.5
+b04b973	0.850000	discard	add momentum 0.9
+21c69cb	0.858333	keep	increase init scale to 0.1
+a81bcd6	0.854167	discard	increase init scale to 0.5
+967dce6	0.854167	discard	add linear LR decay
+d14fcc1	0.854167	discard	set init scale to 0.05
+3a9c17c	0.850000	discard	set C to 2.0
+de56220	0.845833	discard	set C to 1.5
+4ec6c11	0.858333	discard	set init scale to 0.2
+b6ca788	0.854167	discard	lower learning rate to 0.0001
