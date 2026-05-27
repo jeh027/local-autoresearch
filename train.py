@@ -19,7 +19,7 @@ from prepare import TIME_BUDGET, load_train_val, evaluate_accuracy
 # ---------------------------------------------------------------------------
 
 C = 1.0
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.001
 INIT_SCALE = 0.01
 WARMUP_STEPS = 10  # exclude early steps from timed budget (mirrors autoresearch)
 
@@ -51,15 +51,19 @@ class LinearSVM:
         self.b = 0.0
 
     def train_step(self, X, y_pm1):
-        margins = y_pm1 * (X @ self.w + self.b)
+        # Optimized step
+        scores = X @ self.w + self.b
+        margins = y_pm1 * scores
         active = margins < 1.0
 
         grad_w = self.w.copy()
         grad_b = 0.0
 
         if np.any(active):
-            grad_w -= self.C * (y_pm1[active, None] * X[active]).sum(axis=0)
-            grad_b = -self.C * y_pm1[active].sum()
+            X_active = X[active]
+            y_active = y_pm1[active]
+            grad_w -= self.C * (y_active @ X_active)
+            grad_b = -self.C * y_active.sum()
 
         self.w -= self.learning_rate * grad_w
         self.b -= self.learning_rate * grad_b
@@ -90,31 +94,35 @@ def main():
     smooth_loss = 0.0
     ema_beta = 0.9
 
+    # Use a slightly safer budget to ensure we print results before tool timeout
+    effective_budget = min(TIME_BUDGET, 200)
+
     while True:
         t0 = time.time()
 
         model.train_step(X_train, y_train_pm1)
 
-        margins = y_train_pm1 * (X_train @ model.w + model.b)
-        hinge = np.maximum(0.0, 1.0 - margins)
-        loss = 0.5 * np.dot(model.w, model.w) + model.C * hinge.sum()
+        if step % 100 == 0:
+            scores = X_train @ model.w + model.b
+            margins = y_train_pm1 * scores
+            hinge = np.maximum(0.0, 1.0 - margins)
+            loss = 0.5 * np.dot(model.w, model.w) + model.C * hinge.sum()
+            
+            smooth_loss = ema_beta * smooth_loss + (1.0 - ema_beta) * loss
+            debiased_loss = smooth_loss / (1.0 - ema_beta ** (step//100 + 1))
+            
+            print(
+                f"\rstep {step:05d} | loss: {debiased_loss:.6f} | "
+                f"remaining: {max(0.0, effective_budget - total_training_time):.0f}s ",
+                end="",
+                flush=True,
+            )
 
         if step > WARMUP_STEPS:
             total_training_time += time.time() - t0
 
-        smooth_loss = ema_beta * smooth_loss + (1.0 - ema_beta) * loss
-        debiased_loss = smooth_loss / (1.0 - ema_beta ** (step + 1))
-        remaining = max(0.0, TIME_BUDGET - total_training_time)
-
-        print(
-            f"\rstep {step:05d} | loss: {debiased_loss:.6f} | "
-            f"remaining: {remaining:.0f}s ",
-            end="",
-            flush=True,
-        )
-
         step += 1
-        if step > WARMUP_STEPS and total_training_time >= TIME_BUDGET:
+        if step > WARMUP_STEPS and total_training_time >= effective_budget:
             break
 
     print()
