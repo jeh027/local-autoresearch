@@ -14,3 +14,9 @@ d14fcc1	0.854167	discard	set init scale to 0.05
 de56220	0.845833	discard	set C to 1.5
 4ec6c11	0.858333	discard	set init scale to 0.2
 b6ca788	0.854167	discard	lower learning rate to 0.0001
+bec1198	0.862500	keep	decrease C to 0.9 and use full budget
+93d5706	0.854167	discard	increase init scale to 0.15
+744d988	0.854167	discard	Adam optimizer
+2123055	0.854167	discard	set init scale to 0.0
+9fb066c	0.850000	discard	lower learning rate to 0.0003
+d5e79d0	0.854167	discard	exponential LR decay starting at 0.001
