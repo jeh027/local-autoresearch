@@ -18,7 +18,7 @@ from prepare import TIME_BUDGET, load_train_val, evaluate_accuracy
 # Hyperparameters (edit these directly — this is the agent-tunable file)
 # ---------------------------------------------------------------------------
 
-C = 1.0
+C = 0.9
 LEARNING_RATE = 0.0005
 INIT_SCALE = 0.1
 WARMUP_STEPS = 10  # exclude early steps from timed budget (mirrors autoresearch)
@@ -94,8 +94,8 @@ def main():
     smooth_loss = 0.0
     ema_beta = 0.9
 
-    # Use a slightly safer budget to ensure we print results before tool timeout
-    effective_budget = min(TIME_BUDGET, 200)
+    # Use full budget
+    effective_budget = TIME_BUDGET
 
     while True:
         t0 = time.time()
