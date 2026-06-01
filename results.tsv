@@ -1,0 +1,7 @@
+commit	train_accuracy	val_accuracy	status	description
+ff402a2	0.538542	0.529167	keep	phase=A baseline linear SVM (char tfidf 1-3grams + extras)
+402695a	0.873958	0.783333	keep	phase=A add quadratic feature interactions
+5677cd3	0.944792	0.854167	keep	phase=A drop quadratic interactions
+05086dc	0.941667	0.825000	discard	phase=A tfidf only (drop extra features)
+b203d2e	0.694792	0.675000	discard	phase=B test higher learning rate (0.005)
+cc78c55	0.946875	0.858333	keep	phase=B test lower learning rate (0.0005)
