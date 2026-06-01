@@ -14,7 +14,7 @@ The repo is deliberately kept small and only really has three files that matter:
 
 - **`prepare.py`** — fixed constants, one-time data prep (download CSV, parquet train/val split, TF-IDF + extra features), loaders, and `evaluate_accuracy`. **Do not modify** (agent read-only).
 - **`train.py`** — manual NumPy linear SVM (`LinearSVM`), hinge-loss gradients, hyperparameters, and training loop. **This is the file the agent edits.**
-- **`program.md`** — instructions for the autonomous experiment loop (branching, logging, keep/discard). **Edited by the human** to steer the research org.
+- **`program.md`** — instructions for the autonomous experiment loop: the two-phase search (architecture → hyperparameters), gates, branching, logging, and keep/discard. **Edited by the human** to steer the research org.
 
 ### Task and features
 
@@ -35,6 +35,27 @@ There is **no GPU**, **no tokenizer**, and **no neural network** in this fork.
 
 - **Metric:** `val_accuracy` on the hold-out validation split — **higher is better**
 - **Time:** training stops after **5 minutes** of timed steps (after a short warmup), matching the [original autoresearch design](https://github.com/karpathy/autoresearch)
+
+### Experiment workflow (two phases)
+
+`program.md` runs the search in two ordered phases so that architecture and hyperparameters aren't tuned at the same time:
+
+- **Phase A — architecture.** Change *what the model computes* (one architectural idea per commit) while keeping hyperparameters at screening defaults. Each candidate must clear two gates:
+  - **Gate 1 (can it learn?):** `train_accuracy >= 0.80`, otherwise it's logged as `gate1_fail`, discarded, and reset — never ranked.
+  - **Gate 2 (can it generalize?):** among Gate 1 passers, keep the architecture that minimizes `val_error`.
+- **Phase B — hyperparameters (architecture frozen).** Once the winning architecture is chosen, loop forever tuning hyperparameters and training-loop details (architecture is frozen except bugfixes), keeping whatever lowers `val_error` and preferring simpler code on ties.
+
+Rule of thumb: does the change alter *what the network computes / how many params it has*? → Phase A. Does it change *how a fixed model is trained*? → Phase B.
+
+### Logging results
+
+Every experiment is one edit → `git commit` → 5-minute run → keep/reset decision, appended to `results.tsv` (tab-separated, kept **untracked**). Columns:
+
+```
+commit	train_accuracy	val_accuracy	status	description
+```
+
+`status` is `keep`, `discard`, or `crash`; crashes and `gate1_fail` rows use `0.000000` for accuracy. The description carries the `phase=A` / `phase=B` tag and a short note of what was tried.
 
 ## Quick start
 
@@ -87,14 +108,15 @@ After `python train.py`:
 
 ```
 ---
+train_accuracy:   0.910000
+train_error:      0.090000
 val_accuracy:     0.837500
 val_error:        0.162500
 training_seconds: 300.0
-total_seconds:    300.2
+startup_seconds:  1.2
+total_seconds:    301.4
 num_steps:        12345
 num_samples:      960
-C:                1.0
-learning_rate:    0.05
 ```
 
 Parse the key metric from a log file:
