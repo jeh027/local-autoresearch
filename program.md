@@ -63,7 +63,7 @@ Each experiment runs on CPU. The training script runs for a **fixed time budget 
 
 Follow this two-phase framework for editing `train.py`. This section defines *what* each phase changes and *why*; the concrete step-by-step loop lives in **The experiment loop** below.
 
-**Phase A — architecture.** Change model architecture only. While searching architecture, keep hyperparameters fixed at randomly initialized values (5-min train). Exit when all meaningful and effective model architectures have been exhausted; then select the architecture that passes Gate 1 AND minimizes validation error to move on to Phase B.
+**Phase A — architecture.** Change model architecture only. While searching architecture, keep hyperparameters fixed at sensible values that you infer through reasoning about the model and data, held constant across all architecture candidates for a fair comparison (5-min train). Exit when all meaningful and effective model architectures have been exhausted; then select the architecture that passes Gate 1 AND minimizes validation error to move on to Phase B.
    - Gate 1:  Can this architecture learn at all?  → pass / fail           (>= 80% training accuracy)
    - Gate 2:  Can this architecture generalize at all?  → keep / discard   (min(val_error))
    - **Objective:** Find an architecture powerful enough to fully learn the data and simple enough to generalize, using default screening hyperparameter profiles.
