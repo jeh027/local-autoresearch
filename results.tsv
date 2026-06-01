@@ -1,7 +1,0 @@
-commit	train_accuracy	val_accuracy	status	description
-5428f8f	0.570833	0.579167	keep	phase=A baseline linear SVM (char tfidf 1-3grams + extras)
-d6ee33d	0.527083	0.000000	discard	phase=A row-wise L2 norm, gate1_fail train_acc=0.52
-34aa63c	0.505208	0.000000	discard	phase=A apply tanh nonlinearity, gate1_fail train_acc=0.50
-ad3d676	0.568750	0.000000	discard	phase=A Ridge Classifier, gate1_fail train_acc=0.56
-02f0416	0.568750	0.000000	discard	phase=A Random Projection Layer, gate1_fail train_acc=0.56
-e7175ec	0.561458	0.000000	discard	phase=A Nearest Centroid, gate1_fail train_acc=0.56
