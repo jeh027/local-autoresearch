@@ -1,32 +1,38 @@
 """
-Autoresearch SVM training script. Single-file.
-Manual linear SVM (NumPy only) trained under a fixed wall-clock budget.
+Autoresearch pretraining script. Leverages API calls to machine learning models.
 
-Usage:
-    python prepare.py
+Workflow: Run train.py file strictly after prepare.py
+Audience: Agent only modifies this file
+
+Usage (e.g. model architecture, optimizer, training loop)
     python train.py
 """
 
-import math
+# ---------------------------------------------------------------------------
+# Import Dependencies
+# ---------------------------------------------------------------------------
+
 import time
-
 import numpy as np
-
 from prepare import TIME_BUDGET, load_train_val, evaluate_accuracy
 
 # ---------------------------------------------------------------------------
-# Hyperparameters (edit these directly — this is the agent-tunable file)
+# Define Constants
+# ---------------------------------------------------------------------------
+
+WARMUP_STEPS = 10
+
+# ---------------------------------------------------------------------------
+# Hyperparameters (edit these directly, no CLI flags needed)
 # ---------------------------------------------------------------------------
 
 C = 1.0
 LEARNING_RATE = 0.05
 INIT_SCALE = 0.01
-WARMUP_STEPS = 10  # exclude early steps from timed budget (mirrors autoresearch)
 
 # ---------------------------------------------------------------------------
-# SVM model (manual primal linear SVM, binary labels in {-1, +1})
+# Model Architecture
 # ---------------------------------------------------------------------------
-
 
 def _to_dense(X):
     if hasattr(X, "toarray"):
@@ -41,16 +47,21 @@ def _to_pm1(y):
 
 
 class LinearSVM:
-    """Linear SVM trained with full-batch subgradient descent on hinge loss."""
+    """Linear SVM: weights, bias, and inference."""
 
-    def __init__(self, n_features, C=C, learning_rate=LEARNING_RATE, init_scale=INIT_SCALE, seed=42):
+    def __init__(self, n_features, C=C, init_scale=INIT_SCALE, seed=42):
         rng = np.random.default_rng(seed)
         self.C = float(C)
-        self.learning_rate = float(learning_rate)
         self.w = (init_scale * rng.standard_normal(n_features)).astype(np.float32)
         self.b = 0.0
 
-    def train_step(self, X, y_pm1):
+    def predict(self, X):
+        X = _to_dense(X)
+        scores = X @ self.w + self.b
+        return (scores >= 0.0).astype(np.int64)
+
+    def hinge_subgradient(self, X, y_pm1):
+        """Full-batch subgradient of 0.5||w||^2 + C * sum hinge(margin)."""
         margins = y_pm1 * (X @ self.w + self.b)
         active = margins < 1.0
 
@@ -61,39 +72,55 @@ class LinearSVM:
             grad_w -= self.C * (y_pm1[active, None] * X[active]).sum(axis=0)
             grad_b = -self.C * y_pm1[active].sum()
 
-        self.w -= self.learning_rate * grad_w
-        self.b -= self.learning_rate * grad_b
-
-    def predict(self, X):
-        X = _to_dense(X)
-        scores = X @ self.w + self.b
-        return (scores >= 0.0).astype(np.int64)
+        return grad_w, grad_b
 
 
 # ---------------------------------------------------------------------------
-# Training loop (fixed time budget)
+# Optimizer (e.g. MuonAdamW, SGD)
 # ---------------------------------------------------------------------------
 
+class SGD:
+    """Full-batch subgradient descent optimizer."""
+
+    def __init__(self, learning_rate=LEARNING_RATE):
+        self.learning_rate = float(learning_rate)
+
+    def step(self, model, X, y_pm1):
+        grad_w, grad_b = model.hinge_subgradient(X, y_pm1)
+        model.w -= self.learning_rate * grad_w
+        model.b -= self.learning_rate * grad_b
+
+
+# ---------------------------------------------------------------------------
+# Configuration (tie all the above pieces together)
+# ---------------------------------------------------------------------------
 
 def main():
+    t_start = time.time()
+
     X_train, X_val, y_train, y_val = load_train_val()
     X_train = _to_dense(X_train)
     y_train_pm1 = _to_pm1(y_train)
 
     model = LinearSVM(n_features=X_train.shape[1])
+    optimizer = SGD()
     num_samples = X_train.shape[0]
 
-    t_start = time.time()
-    t_train_start = time.time()
-    total_training_time = 0.0
     step = 0
     smooth_loss = 0.0
     ema_beta = 0.9
 
+    # -----------------------------------------------------------------------
+    # Training loop (Fixed Time Budget)
+    # -----------------------------------------------------------------------
+
+    t_train_start = time.time()
+    total_training_time = 0.0
+
     while True:
         t0 = time.time()
 
-        model.train_step(X_train, y_train_pm1)
+        optimizer.step(model, X_train, y_train_pm1)
 
         margins = y_train_pm1 * (X_train @ model.w + model.b)
         hinge = np.maximum(0.0, 1.0 - margins)
@@ -114,12 +141,21 @@ def main():
         )
 
         step += 1
+
         if step > WARMUP_STEPS and total_training_time >= TIME_BUDGET:
             break
 
     print()
 
-    val_accuracy = evaluate_accuracy(model, X_val=X_val, y_val=y_val)
+    # -----------------------------------------------------------------------
+    # Summary Statistics (e.g. evaluation performance, model details, peak memory)
+    # -----------------------------------------------------------------------
+    # Necessary for program.md to parse output into log file and results.tsv
+
+    train_accuracy = evaluate_accuracy(model, X_train, y_train)
+    train_error = 1.0 - train_accuracy
+
+    val_accuracy = evaluate_accuracy(model, X_val, y_val)
     val_error = 1.0 - val_accuracy
 
     t_end = time.time()
@@ -127,6 +163,8 @@ def main():
     total_seconds = t_end - t_start
 
     print("---")
+    print(f"train_accuracy:   {train_accuracy:.6f}")
+    print(f"train_error:      {train_error:.6f}")
     print(f"val_accuracy:     {val_accuracy:.6f}")
     print(f"val_error:        {val_error:.6f}")
     print(f"training_seconds: {total_training_time:.1f}")
@@ -134,8 +172,6 @@ def main():
     print(f"total_seconds:    {total_seconds:.1f}")
     print(f"num_steps:        {step}")
     print(f"num_samples:      {num_samples}")
-    print(f"C:                {C}")
-    print(f"learning_rate:    {LEARNING_RATE}")
 
 
 if __name__ == "__main__":

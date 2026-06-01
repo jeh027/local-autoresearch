@@ -1,13 +1,13 @@
 """
-One-time data preparation for autoresearch SVM experiments.
+One-time data preparation for autoresearch experiments.
 
-Downloads tabular training data, writes train/val parquet splits, fits a
-TF-IDF + numeric feature pipeline (word length, vowel/consonant ratios),
-and exposes runtime loaders + a fixed validation metric for train.py.
+Workflow: Run prepare.py file strictly before train.py
+Audience: Agent does not modify this file
 
-Usage:
-    python prepare.py
-    python prepare.py --val-fraction 0.2
+Usage (e.g. data prep, tokenizer, dataloader, evaluation)
+    python prepare_template.py
+
+Data are stored in ~/.cache/autoresearch/.
 """
 
 # ---------------------------------------------------------------------------
