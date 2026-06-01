@@ -26,7 +26,7 @@ WARMUP_STEPS = 10
 # Hyperparameters (edit these directly, no CLI flags needed)
 # ---------------------------------------------------------------------------
 
-C = 1.0
+C = 0.5
 LEARNING_RATE = 0.0005
 INIT_SCALE = 0.01
 
