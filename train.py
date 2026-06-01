@@ -27,7 +27,7 @@ WARMUP_STEPS = 10
 # ---------------------------------------------------------------------------
 
 C = 1.0
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.001
 INIT_SCALE = 0.01
 
 # ---------------------------------------------------------------------------
@@ -38,6 +38,13 @@ def _to_dense(X):
     if hasattr(X, "toarray"):
         return np.asarray(X.toarray(), dtype=np.float32)
     return np.asarray(X, dtype=np.float32)
+
+
+def _expand_features(X):
+    X = _to_dense(X)
+    extra = X[:, -3:]
+    interactions = (extra[:, :, None] * extra[:, None, :]).reshape(X.shape[0], -1)
+    return np.hstack([X, interactions])
 
 
 def _to_pm1(y):
@@ -56,7 +63,7 @@ class LinearSVM:
         self.b = 0.0
 
     def predict(self, X):
-        X = _to_dense(X)
+        X = _expand_features(X)
         scores = X @ self.w + self.b
         return (scores >= 0.0).astype(np.int64)
 
@@ -98,13 +105,13 @@ class SGD:
 def main():
     t_start = time.time()
 
-    X_train, X_val, y_train, y_val = load_train_val()
-    X_train = _to_dense(X_train)
+    X_train_raw, X_val, y_train, y_val = load_train_val()
+    X_train_expanded = _expand_features(X_train_raw)
     y_train_pm1 = _to_pm1(y_train)
 
-    model = LinearSVM(n_features=X_train.shape[1])
+    model = LinearSVM(n_features=X_train_expanded.shape[1])
     optimizer = SGD()
-    num_samples = X_train.shape[0]
+    num_samples = X_train_expanded.shape[0]
 
     step = 0
     smooth_loss = 0.0
@@ -120,9 +127,9 @@ def main():
     while True:
         t0 = time.time()
 
-        optimizer.step(model, X_train, y_train_pm1)
+        optimizer.step(model, X_train_expanded, y_train_pm1)
 
-        margins = y_train_pm1 * (X_train @ model.w + model.b)
+        margins = y_train_pm1 * (X_train_expanded @ model.w + model.b)
         hinge = np.maximum(0.0, 1.0 - margins)
         loss = 0.5 * np.dot(model.w, model.w) + model.C * hinge.sum()
 
@@ -152,7 +159,7 @@ def main():
     # -----------------------------------------------------------------------
     # Necessary for program.md to parse output into log file and results.tsv
 
-    train_accuracy = evaluate_accuracy(model, X_train, y_train)
+    train_accuracy = evaluate_accuracy(model, X_train_raw, y_train)
     train_error = 1.0 - train_accuracy
 
     val_accuracy = evaluate_accuracy(model, X_val, y_val)
