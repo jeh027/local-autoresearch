@@ -41,10 +41,7 @@ def _to_dense(X):
 
 
 def _expand_features(X):
-    X = _to_dense(X)
-    extra = X[:, -3:]
-    interactions = (extra[:, :, None] * extra[:, None, :]).reshape(X.shape[0], -1)
-    return np.hstack([X, interactions])
+    return _to_dense(X)
 
 
 def _to_pm1(y):

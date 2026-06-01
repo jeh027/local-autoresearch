@@ -114,7 +114,7 @@ When an experiment is done, log it to `results.tsv` (tab-separated, NOT comma-se
 Header and columns:
 
 ```
-commit	train_accuracy	val_accuracy	status	description
+commit	train_accuracy	 val_accuracy	status	description
 ```
 
 1. git commit hash (short, 7 chars)
