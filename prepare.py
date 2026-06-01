@@ -5,7 +5,7 @@ Workflow: Run prepare.py file strictly before train.py
 Audience: Agent does not modify this file
 
 Usage (e.g. data prep, tokenizer, dataloader, evaluation)
-    python prepare_template.py
+    python prepare.py
 
 Data are stored in ~/.cache/autoresearch/.
 """
